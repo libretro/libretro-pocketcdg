@@ -2,17 +2,6 @@
 
 Look for .cdg (& .mp3) file format to use PocketCDG at its best: https://github.com/redbug26/pocketcdg-core/wiki/kcr
 
-## Install on Recalbox
-
-- SSH on your recalbox
-- Type the following command:
-``` 
-curl https://raw.githubusercontent.com/redbug26/libretro-pocketcdg/master/install_recalbox.sh | sh
-``` 
-- Restart your recalbox
-
-(Repeat each time you update your recalbox)
-
 ## Build instructions on other systems
 
 ``` 
