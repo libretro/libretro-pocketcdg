@@ -34,14 +34,9 @@
  * These tables support decoding up to 4 Huffman code bits at a time.
  */
 
-# if defined(__GNUC__)
-#  define PTR(offs, bits)	{ ptr:   { 0, bits, offs       } }
-#  define V(v, w, x, y, hlen)	{ value: { 1, hlen, v, w, x, y } }
-# else
+
 #  define PTR(offs, bits)	{ { 0, bits, offs } }
-#  define V(v, w, x, y, hlen)	{ { 1, hlen, (v << 0) | (w << 1) |  \
-                                             (x << 2) | (y << 3) } }
-# endif
+#  define V(v, w, x, y, hlen)	{ { 1, hlen, (v << 0) | (w << 1) |  (x << 2) | (y << 3) } }
 
 static
 union huffquad const hufftabA[] = {
@@ -107,8 +102,8 @@ union huffquad const hufftabB[] = {
 # undef PTR
 
 # if defined(__GNUC__)
-#  define PTR(offs, bits)	{ ptr:   { 0, bits, offs } }
-#  define V(x, y, hlen)		{ value: { 1, hlen, x, y } }
+#  define PTR(offs, bits)	{  { 0, bits, offs } }
+#  define V(x, y, hlen)		{  { 1, hlen, (x << 0) | (y << 4) } }
 # else
 #  define PTR(offs, bits)	{ { 0, bits, offs } }
 #  define V(x, y, hlen)		{ { 1, hlen, (x << 0) | (y << 4) } }

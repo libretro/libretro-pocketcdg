@@ -29,7 +29,8 @@
 enum mad_layer {
   MAD_LAYER_I   = 1,			/* Layer I */
   MAD_LAYER_II  = 2,			/* Layer II */
-  MAD_LAYER_III = 3			/* Layer III */
+  MAD_LAYER_III = 3,		/* Layer III */
+  MAD_LAYER_IV = 4			/* Layer IV */
 };
 
 enum mad_mode {
