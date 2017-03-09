@@ -1,0 +1,10 @@
+.DS_Store
+*.o
+*.lo
+*.la
+.deps
+.libs
+*.dll
+*.dylib
+*.mp3
+*.cdg
