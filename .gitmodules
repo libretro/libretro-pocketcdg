@@ -1,0 +1,3 @@
+[submodule "pocketcdg-core"]
+	path = pocketcdg-core
+	url = git@github.com:redbug26/pocketcdg-core.git
