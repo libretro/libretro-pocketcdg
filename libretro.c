@@ -299,7 +299,7 @@ void retro_run(void)
             fprintf(stderr, "map decode (Err:%d) %d (%d, %d) %d\n", retour, mp3Position, read, done, soundEnd);
             read++; // Skip in case of error... Maybe ID3 Tag ?
             error++;
-            if (error > 65536) {
+            if (error > 265536) {
                 break;
             }
         }
