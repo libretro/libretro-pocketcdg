@@ -1,10 +1,15 @@
 .DS_Store
-*.o
 *.lo
 *.la
 .deps
 .libs
-*.dll
-*.dylib
+
+# media files
 *.mp3
 *.cdg
+
+# All binaries/libraries@
+*.o
+*.so
+*.dylib
+*.dll

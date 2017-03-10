@@ -12,6 +12,12 @@
 
 #include "libmad/libmad.h"
 
+#include "font8x16.h"
+
+#define GP_RGB24(r, g, b) (((((r >> 3)) & 0x1f) << 11) | ((((g >> 3)) & 0x1f) << 6) | ((((b >> 3)) & 0x1f) << 1))
+
+
+
 #define FPS 50
 
 typedef char BOOL;
@@ -27,11 +33,13 @@ u32 mp3Position;
 
 void updateFromEnvironnement();
 
-
 s16 *soundBuffer;
 u16 soundEnd;
 
-u16 pixels[320 * 240 * 2];   // Verifier taille
+u8 kpause = 0;
+
+u16 pixels[320 * 240 * 2];
+u16 pixels2[320 * 240 * 2];
 
 char Core_Key_Sate[512];
 char Core_old_Key_Sate[512];
@@ -51,6 +59,38 @@ u32 diskLength;
 
 int width, height;
 
+#pragma pack(1)
+
+typedef struct {
+    u8 identifier[3];
+    u16 version;
+    u8 flags;
+    u8 lengthSyncSafe[4];
+} id3Header;
+
+#pragma pack()
+
+
+    //  KfDirect555 = xRRRRRGG.GGGBBBBB
+    //  Red         = xRRRRRxx.xxxxxxxx
+    //  Green       = xxxxxxGG.GGGxxxxx
+    //  Blue        = xxxxxxxx.xxxBBBBB
+
+    // Blend image with background, based on opacity
+    // Code optimization from http://www.gamedev.net/reference/articles/article817.asp
+    // result = destPixel + ((srcPixel - destPixel) * ALPHA) / 256
+
+    u16 AlphaBlend(u16 pixel, u16 backpixel, u16 opacity)
+    {
+        u32 dwAlphaRBtemp = (backpixel & 0xf81f);
+        u32 dwAlphaGtemp = (backpixel & 0x07e0);
+        u32 dw6bitOpacity = (opacity >> 2);
+
+        return (
+            ((dwAlphaRBtemp + ((((pixel & 0xf81f) - dwAlphaRBtemp) * dw6bitOpacity) >> 6)) & 0xf81f) |
+            ((dwAlphaGtemp + ((((pixel & 0x07e0) - dwAlphaGtemp) * dw6bitOpacity) >> 6)) & 0x07e0)
+            );
+    }
 
 BOOL loadGame(void)
 {
@@ -71,9 +111,27 @@ BOOL loadGame(void)
     fread(mp3, 1, mp3Length, fic);
     fclose(fic);
 
+    mp3Position = 0;
+
+    if (mp3Length > 10) {       // Skip ID3 Tag
+        id3Header header;
+        memcpy(&header, mp3, 10);
+
+        if ((header.identifier[0] == 0x49) && (header.identifier[1] == 0x44) && (header.identifier[2] == 0x33)) {
+
+            mp3Position = (header.lengthSyncSafe[0] & 0x7f);
+            mp3Position = (mp3Position << 7) | (header.lengthSyncSafe[1] & 0x7f);
+            mp3Position = (mp3Position << 7) | (header.lengthSyncSafe[2] & 0x7f);
+            mp3Position = (mp3Position << 7) | (header.lengthSyncSafe[3] & 0x7f);
+
+            fprintf(stderr, "id3 length: %d\n", mp3Position);
+
+            mp3Position = mp3Position + 10;
+        }
+    }
+
     mp3Mad = mad_init();
 
-    mp3Position = 0;
 
     soundEnd = 0;
 
@@ -122,8 +180,6 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
 {
     (void)port;
     (void)device;
-
-
 }
 
 void retro_get_system_info(struct retro_system_info *info)
@@ -170,22 +226,22 @@ void retro_set_environment(retro_environment_t cb)
 
 
     static const struct retro_variable vars[] = {
-        { "pocketcdg_resize", "Resize; 320x240|Overscan"                                                         },
-        { NULL,               NULL                                                                               },
+        {"pocketcdg_resize", "Resize; 320x240|Overscan"},
+        {NULL,               NULL                      },
     };
 
     cb(RETRO_ENVIRONMENT_SET_VARIABLES, (void *)vars);
 
 
     static const struct retro_controller_description port[] = {
-        { "RetroPad",      RETRO_DEVICE_JOYPAD                       },
-        { "RetroKeyboard", RETRO_DEVICE_KEYBOARD                     },
+        {"RetroPad",      RETRO_DEVICE_JOYPAD     },
+        {"RetroKeyboard", RETRO_DEVICE_KEYBOARD   },
     };
 
     static const struct retro_controller_info ports[] = {
-        { port, 2 },
-        { port, 2 },
-        { NULL, 0 },
+        {port, 2},
+        {port, 2},
+        {NULL, 0},
     };
 
     cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void *)ports);
@@ -239,7 +295,7 @@ void readIni(void)
 
 void updateFromEnvironnement()
 {
-    struct retro_variable pk1var = { "pocketcdg_resize" };
+    struct retro_variable pk1var = {"pocketcdg_resize"};
 
     if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &pk1var) && pk1var.value) {
         if (!strcmp(pk1var.value, "green")) {
@@ -254,6 +310,41 @@ void retro_key_down(int key)
     log_cb(RETRO_LOG_INFO, "key: %d\n", key);
 }
 
+static char keyPressed[24] = {0};
+
+struct KeyMap {
+    unsigned port;
+    unsigned index;
+
+    int scanCode;
+} keymap[] = {
+    {0, RETRO_DEVICE_ID_JOYPAD_A,      0     },
+    {0, RETRO_DEVICE_ID_JOYPAD_B,      0     },
+    {0, RETRO_DEVICE_ID_JOYPAD_UP,     0     },
+    {0, RETRO_DEVICE_ID_JOYPAD_RIGHT,  0     },
+    {0, RETRO_DEVICE_ID_JOYPAD_LEFT,   0     },
+    {0, RETRO_DEVICE_ID_JOYPAD_DOWN,   0     },
+    {0, RETRO_DEVICE_ID_JOYPAD_X,      0     },
+    {0, RETRO_DEVICE_ID_JOYPAD_Y,      0     },                                                                                                                                                        // 7
+    {0, RETRO_DEVICE_ID_JOYPAD_L,      0     },
+    {0, RETRO_DEVICE_ID_JOYPAD_R,      0     },
+    {0, RETRO_DEVICE_ID_JOYPAD_SELECT, 0     },
+    {0, RETRO_DEVICE_ID_JOYPAD_START,  0     },                                                                                                                                                        // 11
+
+    {1, RETRO_DEVICE_ID_JOYPAD_A,      0     },
+    {1, RETRO_DEVICE_ID_JOYPAD_B,      0     },
+    {1, RETRO_DEVICE_ID_JOYPAD_UP,     0     },
+    {1, RETRO_DEVICE_ID_JOYPAD_RIGHT,  0     },
+    {1, RETRO_DEVICE_ID_JOYPAD_LEFT,   0     },
+    {1, RETRO_DEVICE_ID_JOYPAD_DOWN,   0     },
+    {1, RETRO_DEVICE_ID_JOYPAD_X,      0     },
+    {1, RETRO_DEVICE_ID_JOYPAD_Y,      0     },
+    {1, RETRO_DEVICE_ID_JOYPAD_L,      0     },
+    {1, RETRO_DEVICE_ID_JOYPAD_R,      0     },
+    {1, RETRO_DEVICE_ID_JOYPAD_SELECT, 0     },
+    {1, RETRO_DEVICE_ID_JOYPAD_START,  0     }
+
+};
 
 char framebuf[128];
 
@@ -269,11 +360,103 @@ void retro_run(void)
 
     input_poll_cb();
 
+    int i;
+    for (i = 0; i < 24; i++) {
+        int scanCode = keymap[i].scanCode;
 
-    getFrame(pixels, framecount * (1000 / FPS), FPS);
-    framecount++;
+        if (input_state_cb(keymap[i].port, RETRO_DEVICE_JOYPAD, 0, keymap[i].index)) {
+            if (keyPressed[i] == 0) {
+                keyPressed[i] = 1;
 
-    video_cb(pixels, width, height, width * 2);
+                if (keymap[i].index == RETRO_DEVICE_ID_JOYPAD_R) {
+                    environ_cb(RETRO_ENVIRONMENT_SHUTDOWN, NULL);
+                }
+
+                if (keymap[i].index == RETRO_DEVICE_ID_JOYPAD_SELECT) {
+                    kpause = !kpause;
+                }
+
+            }
+        } else {
+            if (keyPressed[i] == 1) {
+                keyPressed[i] = 0;
+
+            }
+        }
+
+    }
+
+    if (!kpause) {
+
+        getFrame(pixels, framecount * (1000 / FPS), FPS);
+        framecount++;
+    }
+
+    if (framecount < 150) {
+        memcpy(pixels2, pixels, width * height * 2);
+
+        u16 col = GP_RGB24(100, 100, 100);
+
+        // if (framecount>100) {
+        //     u8 n = 100 - (framecount-100);
+        //     col = GP_RGB24(n, n, n);
+        // }
+        //
+
+        #ifdef GIT_VERSION
+    char *version = "git" GIT_VERSION;
+#else
+    char *version = "svn";
+#endif
+
+        char str[512];
+        sprintf(str, "Pocket CDG by Kyuran (%s)", version);
+
+        int i, j;
+
+        for (i = 0; i < strlen(str); i++) {
+
+            for (j = 0; j < 16; j++) {
+                u8 car = (u8)font8x16[str[i] * 16 + j];
+
+                fprintf(stderr, "car %d\n", car);
+
+                int n;
+                for (n = 0; n < 8; n++) {
+                    if ((car & 128) == 128) {
+
+                        if (framecount > 100) {
+                            float ratio = ((float)(framecount-100)/50) * 255;
+
+
+                            u16 origcol = pixels2[n + i * 8 + (j + height - 16) * 320];
+                            u16 destcol = AlphaBlend(origcol, col, (u8)ratio);
+
+
+
+                            pixels2[n + i * 8 + (j + height - 16) * 320] = destcol;
+
+                        } else {
+                            pixels2[n + i * 8 + (j + height - 16) * 320] = col;
+
+                        }
+
+
+                    }
+                    car = car << 1;
+                }
+            }
+
+
+        }
+        video_cb(pixels2, width, height, width * 2);
+
+    } else {
+        video_cb(pixels, width, height, width * 2);
+
+    }
+
+
 
 
 // Play mp3 (to clean)
@@ -281,40 +464,50 @@ void retro_run(void)
 #define NEEDFRAME (44100 / 50) // 32768 max
 #define NEEDBYTE  (NEEDFRAME * 4) // 32768 max
 
-    int error = 0;
+    if (!kpause) {
 
-    while (soundEnd <= NEEDBYTE) {
+        int error = 0;
 
-        int length = 2048;
-        int read;
-        int done; // en bytes
-        int resolution = 16;
-        int halfsamplerate = 0;
+        while (soundEnd <= NEEDBYTE) {
 
-        int retour = mad_decode(mp3Mad, mp3 + mp3Position, length, (char *)soundBuffer + soundEnd, 10000, &read, &done, resolution, halfsamplerate);
+            int length = 2048;
+            int read;
+            int done; // en bytes
+            int resolution = 16;
+            int halfsamplerate = 0;
 
-        soundEnd += done;
-
-        if (done == 0) {
-            fprintf(stderr, "map decode (Err:%d) %d (%d, %d) %d\n", retour, mp3Position, read, done, soundEnd);
-            read++; // Skip in case of error... Maybe ID3 Tag ?
-            error++;
-            if (error > 265536) {
-                break;
+            if (mp3Position + length > mp3Length) {
+                length = mp3Length - mp3Position;
+                if (length <= 0) {
+                    environ_cb(RETRO_ENVIRONMENT_SHUTDOWN, NULL);
+                    break;
+                }
             }
+
+            int retour = mad_decode(mp3Mad, mp3 + mp3Position, length, (char *)soundBuffer + soundEnd, 10000, &read, &done, resolution, halfsamplerate);
+
+            soundEnd += done;
+
+            if (done == 0) {
+                fprintf(stderr, "map decode (Err:%d) %d (%d, %d) %d\n", retour, mp3Position, read, done, soundEnd);
+                read++; // Skip in case of error.
+                error++;
+                if (error > 65536) {
+                    break;
+                }
+            }
+
+            mp3Position += read;
         }
 
-        mp3Position += read;
+        audio_batch_cb(soundBuffer, NEEDFRAME);
+
+        soundEnd -= NEEDBYTE;
+
+        memcpy( (char *)soundBuffer,  (char *)soundBuffer + NEEDBYTE, soundEnd);
     }
 
-    audio_batch_cb(soundBuffer, NEEDFRAME);
-
-    soundEnd -= NEEDBYTE;
-
-    memcpy( (char *)soundBuffer,  (char *)soundBuffer + NEEDBYTE, soundEnd);
-
 } /* retro_run */
-
 
 
 
@@ -322,13 +515,13 @@ bool retro_load_game(const struct retro_game_info *info)
 {
     struct retro_frame_time_callback frame_cb;
     struct retro_input_descriptor desc[] = {
-        { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,   "Left"                  },
-        { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,     "Up"                    },
-        { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,   "Down"                  },
-        { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT,  "Right"                 },
-        { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,  "Start"                 },
-        { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT, "Pause"                 },
-        { 0 },
+        {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,   "Left"  },
+        {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,     "Up"    },
+        {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,   "Down"  },
+        {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT,  "Right" },
+        {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,  "Start" },
+        {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT, "Pause" },
+        {0},
     };
 
     log_cb(RETRO_LOG_INFO, "begin of load games\n");
