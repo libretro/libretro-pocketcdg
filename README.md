@@ -1,5 +1,7 @@
 # libretro-pocketcdg
 
+[![Build Status](https://travis-ci.org/redbug26/libretro-pocketcdg.svg?branch=master)](https://travis-ci.org/travis-ci/travis-api)
+
 Look for .cdg (& .mp3) file format to use PocketCDG at its best: https://github.com/redbug26/pocketcdg-core/wiki/kcr
 
 ## Build instructions on other systems
