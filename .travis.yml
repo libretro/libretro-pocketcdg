@@ -1,9 +1,9 @@
 language: C
 
 os:
-  - linux
-  - osx
+- linux
+- osx
 
 script: 
-	- make
+- make
 
