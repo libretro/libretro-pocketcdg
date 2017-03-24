@@ -257,7 +257,7 @@ int mad_decode(void* hMad, char *inmemory,int inmemsize, char *outmemory,
 
 	*done = 0;
 	*read = 0;
-	mad_stream_buffer(&dec->stream, inmemory, inmemsize);
+	mad_stream_buffer(&dec->stream, (const unsigned char*)inmemory, inmemsize);
 	
 	if (mad_frame_decode(&dec->frame, &dec->stream) == -1) {
 		if (dec->stream.error == MAD_ERROR_BUFLEN)
@@ -290,7 +290,7 @@ int mad_decode(void* hMad, char *inmemory,int inmemsize, char *outmemory,
 	if (outmemsize < dec->synth.pcm.length * resolution * dec->synth.pcm.channels / 8)
 		return MAD_NEED_MORE_OUTPUT;
 
-	pack_pcm(outmemory, dec->synth.pcm.length, dec->synth.pcm.samples[0],
+	pack_pcm((unsigned char*)outmemory, dec->synth.pcm.length, dec->synth.pcm.samples[0],
 		(dec->synth.pcm.channels == 1) ? NULL : dec->synth.pcm.samples[1], resolution, &dec->stats);
 	*done += dec->synth.pcm.length * resolution * dec->synth.pcm.channels / 8;
 	*read += (char*)dec->stream.next_frame - inmemory;
