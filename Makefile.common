@@ -1,5 +1,6 @@
-SOURCES_C := $(CORE_DIR)/libretro.c \
-    $(wildcard $(CORE_DIR)/pocketcdg-core/*.c) \
-    $(wildcard $(CORE_DIR)/libmad/*.c) \
-    $(wildcard $(CORE_DIR)/zip/*.c) \
-    $(wildcard $(CORE_DIR)/zip/zlib/*.c)
+SOURCES_C := \
+	$(CORE_DIR)/libretro.c \
+	$(CORE_DIR)/plateform.c \
+	$(wildcard $(CORE_DIR)/libmad/*.c) \
+	$(wildcard $(CORE_DIR)/zip/*.c) \
+	$(wildcard $(CORE_DIR)/zip/zlib/*.c)

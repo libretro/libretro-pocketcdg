@@ -8,7 +8,7 @@
 #include <errno.h>
 #include <sys/time.h>
 
-#include "pocketcdg-core/plateform.h"
+#include "plateform.h"
 
 #include "libmad/libmad.h"
 
