@@ -35,7 +35,7 @@ GIT_VERSION ?= " $(shell git rev-parse --short HEAD || echo unknown)"
 ifneq ($(GIT_VERSION)," unknown")
 	CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 endif
-LIBM := -lm
+LIBS := -lm
 fpic=
 
 ifeq ($(ARCHFLAGS),)
@@ -64,7 +64,7 @@ else ifeq ($(platform), linux-portable)
    TARGET := $(TARGET_NAME)_libretro.$(EXT)
    fpic := -fPIC -nostdlib
    SHARED := -shared -Wl,--no-undefined
-	LIBM :=
+	LIBS :=
 else ifeq ($(platform), osx)
 	EXT?=dylib
    TARGET := $(TARGET_NAME)_libretro.$(EXT)
@@ -279,7 +279,8 @@ CFLAGS += $(fpic) $(PLATFORM_DEFINES)
 
 CFLAGS += $(INCFLAGS) $(INCFLAGS_PLATFORM)
 LFLAGS := 
-LDFLAGS += $(LIBM)
+
+LDFLAGS += $(LIBS)
 
 ifeq ($(platform), osx)
 ifndef ($(NOUNIVERSAL))
