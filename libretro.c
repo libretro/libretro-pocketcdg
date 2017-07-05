@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <errno.h>
-#include <sys/time.h>
 
 #include "plateform.h"
 
