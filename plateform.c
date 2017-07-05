@@ -76,28 +76,26 @@ void GpSetPaletteEntry(u8 i, u8 r, u8 g, u8 b)
 
 void CDGLoad(char *filename)
 {
+   int n;
+   firsttime = 1;
 
-    firsttime = 1;
+   for (n = 0; n < 16; n++)
+      GpSetPaletteEntry(n, 0, 0, 0);
 
-    int n;
-    for (n = 0; n < 16; n++) {
-        GpSetPaletteEntry(n, 0, 0, 0);
-    }
+   CDG_screenBuffer = (unsigned char *)malloc(76800);
+   memset(CDG_screenBuffer, 0, 76800);
 
-    CDG_screenBuffer = (unsigned char *)malloc(76800);
-    memset(CDG_screenBuffer, 0, 76800);
+   cdg_refresh = 0;
 
-    cdg_refresh = 0;
+   pos_cdg = 0;
 
-    pos_cdg = 0;
-
-    pauseCDG = 0;
-    save = 0;
-    load = 0;
-    action = 0;
+   pauseCDG = 0;
+   save = 0;
+   load = 0;
+   action = 0;
 
 
-    fp = fopen(filename, "rb");
+   fp = fopen(filename, "rb");
 } /* CDGLoad */
 
 
@@ -105,24 +103,21 @@ void getFrame(u16 *frame, int pos_mp3, int fps)
 {
     SUBCODE subCode;
     unsigned long m_size;
-    int cont;
-
     int n;
+    int cont = 1;
 
-
-    cont = 1;
-
-    if (pauseCDG == 1) {
+    if (pauseCDG == 1)
         cont = 0;
-    }
 
-    if (fp == NULL) {
+    if (fp == NULL)
         cont = 0;
-    }
 
 
-    if (cont) {
-        if (firsttime == 1) {
+    if (cont)
+    {
+        int until;
+        if (firsttime == 1)
+        {
 
             memset(frame, 0, 320 * 240 * 2);
 
@@ -136,11 +131,12 @@ void getFrame(u16 *frame, int pos_mp3, int fps)
         yPitch0 = 320;
         CDG_pal_screenBuffer = frame;
 
+#if 0
         if (pos_mp3 == -1) {
             // [self Shutdown];
         }
+#endif
 
-        int until;
         /*
          * int old_pos_cdg;         // pos_cdg  en 1000/300 ms
          * old_pos_cdg = pos_cdg;
@@ -148,21 +144,20 @@ void getFrame(u16 *frame, int pos_mp3, int fps)
 
         until = 300 / fps;
 
-        if ((pos_mp3 * 3 - pos_cdg * 10) > 300) { // Plus d'une seconde de decalage
+        if ((pos_mp3 * 3 - pos_cdg * 10) > 300) // Plus d'une seconde de decalage
             until = (pos_mp3 * 3 - pos_cdg * 10) / 10;
-        }
-        if ((pos_mp3 * 3 - pos_cdg * 10) < -300) { // Plus d'une seconde de decalage
+        if ((pos_mp3 * 3 - pos_cdg * 10) < -300) // Plus d'une seconde de decalage
             until = 0;
-        }
 
-        for (n = 0; n < until; n++) {
+        for (n = 0; n < until; n++)
+        {
             pos_cdg++;
 
             m_size = fread(&subCode, 1, sizeof(SUBCODE), fp);
-            if (m_size != 0) {
-                if ((subCode.command & SC_MASK) == SC_CDG_COMMAND) {
+            if (m_size != 0)
+            {
+                if ((subCode.command & SC_MASK) == SC_CDG_COMMAND)
                     CDG_Handler(&subCode);
-                }
             }
         }
 
