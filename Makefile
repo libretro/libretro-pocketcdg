@@ -13,6 +13,8 @@ else ifneq ($(findstring win,$(shell uname -a)),)
 endif
 endif
 
+CORE_DIR := .
+
 # system platform
 system_platform = unix
 ifeq ($(shell uname -a),)
@@ -202,6 +204,56 @@ else ifeq ($(platform), wiiu)
 	PLATFORM_DEFINES += -DGEKKO -DWIIU -DHW_RVL -mrvl -mcpu=750 -meabi -mhard-float
 	STATIC_LINKING = 1
 
+# Windows MSVC 2010 x64
+else ifeq ($(platform), windows_msvc2010_x64)
+	CC  = cl.exe
+	CXX = cl.exe
+
+PATH := $(shell IFS=$$'\n'; cygpath "$(VS100COMNTOOLS)../../VC/bin/amd64"):$(PATH)
+PATH := $(PATH):$(shell IFS=$$'\n'; cygpath "$(VS100COMNTOOLS)../IDE")
+LIB := $(shell IFS=$$'\n'; cygpath "$(VS100COMNTOOLS)../../VC/lib/amd64")
+INCLUDE := $(shell IFS=$$'\n'; cygpath "$(VS100COMNTOOLS)../../VC/include")
+
+WindowsSdkDir := $(shell reg query "HKLM\SOFTWARE\Microsoft\Microsoft SDKs\Windows\v7.0A" -v "InstallationFolder" | grep -o '[A-Z]:\\.*')lib/x64
+WindowsSdkDir ?= $(shell reg query "HKLM\SOFTWARE\Microsoft\Microsoft SDKs\Windows\v7.1A" -v "InstallationFolder" | grep -o '[A-Z]:\\.*')lib/x64
+
+WindowsSdkDirInc := $(shell reg query "HKLM\SOFTWARE\Microsoft\Microsoft SDKs\Windows\v7.0A" -v "InstallationFolder" | grep -o '[A-Z]:\\.*')Include
+WindowsSdkDirInc ?= $(shell reg query "HKLM\SOFTWARE\Microsoft\Microsoft SDKs\Windows\v7.1A" -v "InstallationFolder" | grep -o '[A-Z]:\\.*')Include
+
+
+INCFLAGS_PLATFORM = -I"$(WindowsSdkDirInc)"
+export INCLUDE := $(INCLUDE)
+export LIB := $(LIB);$(WindowsSdkDir)
+TARGET := $(TARGET_NAME)_libretro.dll
+PSS_STYLE :=2
+LDFLAGS += -DLL
+LIBS =
+# Windows MSVC 2010 x86
+else ifeq ($(platform), windows_msvc2010_x86)
+	CC  = cl.exe
+	CXX = cl.exe
+
+PATH := $(shell IFS=$$'\n'; cygpath "$(VS100COMNTOOLS)../../VC/bin"):$(PATH)
+PATH := $(PATH):$(shell IFS=$$'\n'; cygpath "$(VS100COMNTOOLS)../IDE")
+LIB := $(shell IFS=$$'\n'; cygpath -w "$(VS100COMNTOOLS)../../VC/lib")
+INCLUDE := $(shell IFS=$$'\n'; cygpath "$(VS100COMNTOOLS)../../VC/include")
+
+WindowsSdkDir := $(shell reg query "HKLM\SOFTWARE\Microsoft\Microsoft SDKs\Windows\v7.0A" -v "InstallationFolder" | grep -o '[A-Z]:\\.*')lib
+WindowsSdkDir ?= $(shell reg query "HKLM\SOFTWARE\Microsoft\Microsoft SDKs\Windows\v7.1A" -v "InstallationFolder" | grep -o '[A-Z]:\\.*')lib
+
+WindowsSdkDirInc := $(shell reg query "HKLM\SOFTWARE\Microsoft\Microsoft SDKs\Windows\v7.0A" -v "InstallationFolder" | grep -o '[A-Z]:\\.*')Include
+WindowsSdkDirInc ?= $(shell reg query "HKLM\SOFTWARE\Microsoft\Microsoft SDKs\Windows\v7.1A" -v "InstallationFolder" | grep -o '[A-Z]:\\.*')Include
+
+
+INCFLAGS_PLATFORM = -I"$(WindowsSdkDirInc)"
+export INCLUDE := $(INCLUDE)
+export LIB := $(LIB);$(WindowsSdkDir)
+TARGET := $(TARGET_NAME)_libretro.dll
+PSS_STYLE :=2
+LDFLAGS += -DLL
+LIBS =
+
+# Windows
 else
 	EXT?=dll
    TARGET := $(TARGET_NAME)_libretro.$(EXT)
@@ -217,17 +269,15 @@ endif
 ifeq ($(DEBUG), 1)
    CFLAGS += -O0 -g
 else
-   CFLAGS += -O3
+   CFLAGS += -O2 -DNDEBUG
 endif
-
-CORE_DIR := .
 
 include Makefile.common
 
 OBJECTS := $(SOURCES_C:.c=.o)
 CFLAGS += $(fpic) $(PLATFORM_DEFINES)
 
-CFLAGS += 
+CFLAGS += $(INCFLAGS) $(INCFLAGS_PLATFORM)
 LFLAGS := 
 LDFLAGS += $(LIBM)
 
@@ -244,7 +294,7 @@ ifneq ($(fpic),)
 endif
 
 ifeq ($(platform), theos_ios)
-COMMON_FLAGS := -DIOS $(COMMON_DEFINES) $(INCFLAGS) -I$(THEOS_INCLUDE_PATH) -Wno-error
+COMMON_FLAGS := -DIOS $(COMMON_DEFINES) $(INCFLAGS) $(INCFLAGS_PLATFORM) -I$(THEOS_INCLUDE_PATH) -Wno-error
 $(LIBRARY_NAME)_CFLAGS += $(COMMON_FLAGS) $(CFLAGS)
 ${LIBRARY_NAME}_FILES = $(SOURCES_C)
 include $(THEOS_MAKE_PATH)/library.mk
@@ -255,11 +305,11 @@ $(TARGET): $(OBJECTS)
 ifeq ($(STATIC_LINKING), 1)
 	$(AR) rcs $@ $(OBJECTS)
 else
-	$(CC) $(fpic) $(SHARED) $(INCLUDES) $(LFLAGS) -o $@ $(OBJECTS) $(LDFLAGS)
+	$(LD) $(fpic) $(SHARED) $(LFLAGS) $(LINKOUT)$@ $(OBJECTS) $(LDFLAGS)
 endif
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) -c $(OBJOUT)$@ $<
 
 clean:
 	rm -f $(OBJECTS) $(TARGET) pocketcdg_libretro.dylib  pocketcdg_libretro.dll
