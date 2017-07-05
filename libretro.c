@@ -470,6 +470,7 @@ void retro_run(void)
 
          int length = 2048;
          int read;
+         int retour;
          int done; // en bytes
          int resolution = 16;
          int halfsamplerate = 0;
@@ -482,17 +483,17 @@ void retro_run(void)
             }
          }
 
-         int retour = mad_decode(mp3Mad, mp3 + mp3Position, length, (char *)soundBuffer + soundEnd, 10000, &read, &done, resolution, halfsamplerate);
+         retour = mad_decode(mp3Mad, mp3 + mp3Position, length, (char *)soundBuffer + soundEnd, 10000, &read, &done, resolution, halfsamplerate);
 
          soundEnd += done;
 
-         if (done == 0) {
+         if (done == 0)
+         {
             fprintf(stderr, "map decode (Err:%d) %d (%d, %d) %d\n", retour, mp3Position, read, done, soundEnd);
             read++; // Skip in case of error.
             error++;
-            if (error > 65536) {
+            if (error > 65536)
                break;
-            }
          }
 
          mp3Position += read;
@@ -521,15 +522,15 @@ bool retro_load_game(const struct retro_game_info *info)
         {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT, "Pause" },
         {0},
     };
+    enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_RGB565;
 
     log_cb(RETRO_LOG_INFO, "begin of load games\n");
 
     environ_cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, desc);
 
     // Init pixel format
-
-    enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_RGB565;
-    if (!environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt)) {
+    if (!environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt))
+    {
         if (log_cb)
             log_cb(RETRO_LOG_INFO, "XRGG565 is not supported.\n");
         return 0;
