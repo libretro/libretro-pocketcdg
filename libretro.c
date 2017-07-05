@@ -93,48 +93,47 @@ typedef struct {
 
 BOOL loadGame(void)
 {
-    CDGLoad(openCDGFilename);
+   FILE *fic = NULL;
+   CDGLoad(openCDGFilename);
 
-    FILE *fic = fopen(openMP3Filename, "rb");
-    if (fic == NULL) {
-        return 0;
-    }
-    fseek(fic, 0, SEEK_END);
-    mp3Length = ftell(fic);
-    fseek(fic, 0, SEEK_SET);
+   fic = fopen(openMP3Filename, "rb");
+   if (fic == NULL)
+      return 0;
+   fseek(fic, 0, SEEK_END);
+   mp3Length = ftell(fic);
+   fseek(fic, 0, SEEK_SET);
 
-    mp3 = (char *)malloc(mp3Length);
-    if (mp3 == NULL) {
-        return 0;
-    }
-    fread(mp3, 1, mp3Length, fic);
-    fclose(fic);
+   mp3 = (char *)malloc(mp3Length);
+   if (mp3 == NULL)
+      return 0;
+   fread(mp3, 1, mp3Length, fic);
+   fclose(fic);
 
-    mp3Position = 0;
+   mp3Position = 0;
 
-    if (mp3Length > 10) {       // Skip ID3 Tag
-        id3Header header;
-        memcpy(&header, mp3, 10);
+   if (mp3Length > 10) {       // Skip ID3 Tag
+      id3Header header;
+      memcpy(&header, mp3, 10);
 
-        if ((header.identifier[0] == 0x49) && (header.identifier[1] == 0x44) && (header.identifier[2] == 0x33)) {
+      if ((header.identifier[0] == 0x49) && (header.identifier[1] == 0x44) && (header.identifier[2] == 0x33)) {
 
-            mp3Position = (header.lengthSyncSafe[0] & 0x7f);
-            mp3Position = (mp3Position << 7) | (header.lengthSyncSafe[1] & 0x7f);
-            mp3Position = (mp3Position << 7) | (header.lengthSyncSafe[2] & 0x7f);
-            mp3Position = (mp3Position << 7) | (header.lengthSyncSafe[3] & 0x7f);
+         mp3Position = (header.lengthSyncSafe[0] & 0x7f);
+         mp3Position = (mp3Position << 7) | (header.lengthSyncSafe[1] & 0x7f);
+         mp3Position = (mp3Position << 7) | (header.lengthSyncSafe[2] & 0x7f);
+         mp3Position = (mp3Position << 7) | (header.lengthSyncSafe[3] & 0x7f);
 
-            fprintf(stderr, "id3 length: %d\n", mp3Position);
+         fprintf(stderr, "id3 length: %d\n", mp3Position);
 
-            mp3Position = mp3Position + 10;
-        }
-    }
+         mp3Position = mp3Position + 10;
+      }
+   }
 
-    mp3Mad = mad_init();
+   mp3Mad = mad_init();
 
 
-    soundEnd = 0;
+   soundEnd = 0;
 
-    return true;
+   return true;
 } /* loadGame */
 
 static void fallback_log(enum retro_log_level level, const char *fmt, ...)
@@ -212,26 +211,10 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
 void retro_set_environment(retro_environment_t cb)
 {
     struct retro_log_callback logging;
-
-    environ_cb = cb;
-
-    if (cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &logging)) {
-        log_cb = logging.log;
-    } else {
-        log_cb = fallback_log;
-    }
-
-    log_cb = fallback_log;
-
-
     static const struct retro_variable vars[] = {
         {"pocketcdg_resize", "Resize; 320x240|Overscan"},
         {NULL,               NULL                      },
     };
-
-    cb(RETRO_ENVIRONMENT_SET_VARIABLES, (void *)vars);
-
-
     static const struct retro_controller_description port[] = {
         {"RetroPad",      RETRO_DEVICE_JOYPAD     },
         {"RetroKeyboard", RETRO_DEVICE_KEYBOARD   },
@@ -242,6 +225,18 @@ void retro_set_environment(retro_environment_t cb)
         {port, 2},
         {NULL, 0},
     };
+
+    environ_cb = cb;
+
+    if (cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &logging))
+        log_cb = logging.log;
+    else
+        log_cb = fallback_log;
+
+    log_cb = fallback_log;
+
+    cb(RETRO_ENVIRONMENT_SET_VARIABLES, (void *)vars);
+
 
     cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void *)ports);
 
@@ -351,160 +346,164 @@ static int framecount = 0;
 
 void retro_run(void)
 {
-    static bool updated = false;
+   int i;
+   static bool updated = false;
 
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated) {
-        updateFromEnvironnement();
-    }
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
+      updateFromEnvironnement();
 
-    input_poll_cb();
+   input_poll_cb();
 
-    int i;
-    for (i = 0; i < 24; i++) {
-        int scanCode = keymap[i].scanCode;
+   for (i = 0; i < 24; i++)
+   {
+      int scanCode = keymap[i].scanCode;
 
-        if (input_state_cb(keymap[i].port, RETRO_DEVICE_JOYPAD, 0, keymap[i].index)) {
-            if (keyPressed[i] == 0) {
-                keyPressed[i] = 1;
+      if (input_state_cb(keymap[i].port, RETRO_DEVICE_JOYPAD, 0, keymap[i].index)) {
+         if (keyPressed[i] == 0) {
+            keyPressed[i] = 1;
 
-                if (keymap[i].index == RETRO_DEVICE_ID_JOYPAD_R) {
-                    environ_cb(RETRO_ENVIRONMENT_SHUTDOWN, NULL);
-                }
+            if (keymap[i].index == RETRO_DEVICE_ID_JOYPAD_R)
+               environ_cb(RETRO_ENVIRONMENT_SHUTDOWN, NULL);
 
-                if (keymap[i].index == RETRO_DEVICE_ID_JOYPAD_SELECT) {
-                    kpause = !kpause;
-                }
+            if (keymap[i].index == RETRO_DEVICE_ID_JOYPAD_SELECT)
+               kpause = !kpause;
 
-            }
-        } else {
-            if (keyPressed[i] == 1) {
-                keyPressed[i] = 0;
+         }
+      }
+      else
+      {
+         if (keyPressed[i] == 1)
+            keyPressed[i] = 0;
+      }
 
-            }
-        }
+   }
 
-    }
+   if (!kpause) {
 
-    if (!kpause) {
+      getFrame(pixels, framecount * (1000 / FPS), FPS);
+      framecount++;
+   }
 
-        getFrame(pixels, framecount * (1000 / FPS), FPS);
-        framecount++;
-    }
-
-    if (framecount < 150) {
-        memcpy(pixels2, pixels, width * height * 2);
-
-        u16 col = GP_RGB24(100, 100, 100);
-
-        // if (framecount>100) {
-        //     u8 n = 100 - (framecount-100);
-        //     col = GP_RGB24(n, n, n);
-        // }
-        //
-
-        #ifdef GIT_VERSION
-    char *version = "git" GIT_VERSION;
+   if (framecount < 150)
+   {
+      int i, j;
+      char str[512];
+      u16 col;
+#ifdef GIT_VERSION
+      char *version = "git" GIT_VERSION;
 #else
-    char *version = "svn";
+      char *version = "svn";
 #endif
 
-        char str[512];
-        sprintf(str, "Pocket CDG by Kyuran (%s)", version);
+      memcpy(pixels2, pixels, width * height * 2);
 
-        int i, j;
+      col = GP_RGB24(100, 100, 100);
 
-        for (i = 0; i < strlen(str); i++) {
+      // if (framecount>100) {
+      //     u8 n = 100 - (framecount-100);
+      //     col = GP_RGB24(n, n, n);
+      // }
+      //
 
-            for (j = 0; j < 16; j++) {
-                u8 car = (u8)font8x16[str[i] * 16 + j];
+      sprintf(str, "Pocket CDG by Kyuran (%s)", version);
 
-                fprintf(stderr, "car %d\n", car);
+      for (i = 0; i < strlen(str); i++)
+      {
 
-                int n;
-                for (n = 0; n < 8; n++) {
-                    if ((car & 128) == 128) {
+         for (j = 0; j < 16; j++)
+         {
+            int n;
+            u8 car = (u8)font8x16[str[i] * 16 + j];
 
-                        if (framecount > 100) {
-                            float ratio = ((float)(framecount-100)/50) * 255;
+            fprintf(stderr, "car %d\n", car);
 
-
-                            u16 origcol = pixels2[n + i * 8 + (j + height - 16) * 320];
-                            u16 destcol = AlphaBlend(origcol, col, (u8)ratio);
-
-
-
-                            pixels2[n + i * 8 + (j + height - 16) * 320] = destcol;
-
-                        } else {
-                            pixels2[n + i * 8 + (j + height - 16) * 320] = col;
-
-                        }
+            for (n = 0; n < 8; n++)
+            {
+               if ((car & 128) == 128)
+               {
+                  if (framecount > 100)
+                  {
+                     float ratio = ((float)(framecount-100)/50) * 255;
 
 
-                    }
-                    car = car << 1;
-                }
+                     u16 origcol = pixels2[n + i * 8 + (j + height - 16) * 320];
+                     u16 destcol = AlphaBlend(origcol, col, (u8)ratio);
+
+
+
+                     pixels2[n + i * 8 + (j + height - 16) * 320] = destcol;
+
+                  } else {
+                     pixels2[n + i * 8 + (j + height - 16) * 320] = col;
+
+                  }
+
+
+               }
+               car = car << 1;
             }
+         }
 
 
-        }
-        video_cb(pixels2, width, height, width * 2);
+      }
+      video_cb(pixels2, width, height, width * 2);
 
-    } else {
-        video_cb(pixels, width, height, width * 2);
+   } else {
+      video_cb(pixels, width, height, width * 2);
 
-    }
-
-
+   }
 
 
-// Play mp3 (to clean)
+
+
+   // Play mp3 (to clean)
 
 #define NEEDFRAME (44100 / 50) // 32768 max
 #define NEEDBYTE  (NEEDFRAME * 4) // 32768 max
 
-    if (!kpause) {
+   if (!kpause)
+   {
 
-        int error = 0;
+      int error = 0;
 
-        while (soundEnd <= NEEDBYTE) {
+      while (soundEnd <= NEEDBYTE) {
 
-            int length = 2048;
-            int read;
-            int done; // en bytes
-            int resolution = 16;
-            int halfsamplerate = 0;
+         int length = 2048;
+         int read;
+         int done; // en bytes
+         int resolution = 16;
+         int halfsamplerate = 0;
 
-            if (mp3Position + length > mp3Length) {
-                length = mp3Length - mp3Position;
-                if (length <= 0) {
-                    environ_cb(RETRO_ENVIRONMENT_SHUTDOWN, NULL);
-                    break;
-                }
+         if (mp3Position + length > mp3Length) {
+            length = mp3Length - mp3Position;
+            if (length <= 0) {
+               environ_cb(RETRO_ENVIRONMENT_SHUTDOWN, NULL);
+               break;
             }
+         }
 
-            int retour = mad_decode(mp3Mad, mp3 + mp3Position, length, (char *)soundBuffer + soundEnd, 10000, &read, &done, resolution, halfsamplerate);
+         int retour = mad_decode(mp3Mad, mp3 + mp3Position, length, (char *)soundBuffer + soundEnd, 10000, &read, &done, resolution, halfsamplerate);
 
-            soundEnd += done;
+         soundEnd += done;
 
-            if (done == 0) {
-                fprintf(stderr, "map decode (Err:%d) %d (%d, %d) %d\n", retour, mp3Position, read, done, soundEnd);
-                read++; // Skip in case of error.
-                error++;
-                if (error > 65536) {
-                    break;
-                }
+         if (done == 0) {
+            fprintf(stderr, "map decode (Err:%d) %d (%d, %d) %d\n", retour, mp3Position, read, done, soundEnd);
+            read++; // Skip in case of error.
+            error++;
+            if (error > 65536) {
+               break;
             }
+         }
 
-            mp3Position += read;
-        }
+         mp3Position += read;
+      }
 
-        audio_batch_cb(soundBuffer, NEEDFRAME);
+      audio_batch_cb(soundBuffer, NEEDFRAME);
 
-        soundEnd -= NEEDBYTE;
+      soundEnd -= NEEDBYTE;
 
-        memcpy( (char *)soundBuffer,  (char *)soundBuffer + NEEDBYTE, soundEnd);
-    }
+      memcpy( (char *)soundBuffer,  (char *)soundBuffer + NEEDBYTE, soundEnd);
+   }
 
 } /* retro_run */
 
