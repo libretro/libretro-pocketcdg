@@ -211,10 +211,6 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
 void retro_set_environment(retro_environment_t cb)
 {
     struct retro_log_callback logging;
-    static const struct retro_variable vars[] = {
-        {"pocketcdg_resize", "Resize; 320x240|Overscan"},
-        {NULL,               NULL                      },
-    };
     static const struct retro_controller_description port[] = {
         {"RetroPad",      RETRO_DEVICE_JOYPAD     },
         {"RetroKeyboard", RETRO_DEVICE_KEYBOARD   },
@@ -234,9 +230,6 @@ void retro_set_environment(retro_environment_t cb)
         log_cb = fallback_log;
 
     log_cb = fallback_log;
-
-    cb(RETRO_ENVIRONMENT_SET_VARIABLES, (void *)vars);
-
 
     cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void *)ports);
 
@@ -287,16 +280,8 @@ void readIni(void)
 
 }
 
-void updateFromEnvironnement()
+void updateFromEnvironnement(void)
 {
-    struct retro_variable pk1var = {"pocketcdg_resize"};
-
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &pk1var) && pk1var.value) {
-        if (!strcmp(pk1var.value, "green")) {
-            // ExecuteMenu(&gb, ID_GREEN_MONITOR, NULL);
-        }
-    }
-
 }
 
 void retro_key_down(int key)
