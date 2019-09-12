@@ -117,6 +117,18 @@ else
    SHARED += -miphoneos-version-min=5.0
    CC +=  -miphoneos-version-min=5.0
 endif
+
+#tvOS
+else ifeq ($(platform), tvos-arm64)
+   EXT?=dylib
+   TARGET := $(TARGET_NAME)_libretro_tvos.$(EXT)
+   fpic := -fPIC
+   SHARED := -dynamiclib
+   DEFINES := -DIOS
+ifeq ($(IOSSDK),)
+   IOSSDK := $(shell xcodebuild -version -sdk appletvos Path)
+endif
+
 else ifeq ($(platform), theos_ios)
 	# Theos iOS
 DEPLOYMENT_IOSVERSION = 5.0
