@@ -400,8 +400,6 @@ void retro_run(void)
             int n;
             u8 car = (u8)font8x16[str[i] * 16 + j];
 
-            fprintf(stderr, "car %d\n", car);
-
             for (n = 0; n < 8; n++)
             {
                if ((car & 128) == 128)
