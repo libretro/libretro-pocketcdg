@@ -6,6 +6,9 @@ INCFLAGS += -I$(LIBRETRO_COMM_DIR)/include/compat/msvc
 endif
 
 INCFLAGS += -I$(LIBRETRO_COMM_DIR)/include
+# We compile only for 32-bit and 16-bit platforms and in both cases
+# int is 4 bytes. We dont support 16-bit
+CFLAGS += -DSIZEOF_INT=4
 
 SOURCES_C := \
 	$(CORE_DIR)/libretro.c \
