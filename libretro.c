@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <errno.h>
+#include <retro_endianness.h>
 
 #include "plateform.h"
 
@@ -43,7 +44,9 @@ u16 pixels2[320 * 240 * 2];
 char Core_Key_Sate[512];
 char Core_old_Key_Sate[512];
 
-retro_log_printf_t log_cb;
+static void fallback_log(enum retro_log_level level, const char *fmt, ...);
+
+retro_log_printf_t log_cb = fallback_log;
 retro_video_refresh_t video_cb;
 
 static retro_audio_sample_t audio_cb;
@@ -122,7 +125,7 @@ BOOL loadGame(void)
          mp3Position = (mp3Position << 7) | (header.lengthSyncSafe[2] & 0x7f);
          mp3Position = (mp3Position << 7) | (header.lengthSyncSafe[3] & 0x7f);
 
-         fprintf(stderr, "id3 length: %d\n", mp3Position);
+         log_cb(RETRO_LOG_INFO, "id3 length: %d\n", mp3Position);
 
          mp3Position = mp3Position + 10;
       }
@@ -150,7 +153,6 @@ static void fallback_log(enum retro_log_level level, const char *fmt, ...)
 void retro_init(void)
 {
     char *savedir = NULL;
-    int i;
 
     environ_cb(RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY, &savedir);
 
@@ -226,10 +228,6 @@ void retro_set_environment(retro_environment_t cb)
 
     if (cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &logging))
         log_cb = logging.log;
-    else
-        log_cb = fallback_log;
-
-    log_cb = fallback_log;
 
     cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void *)ports);
 
@@ -341,8 +339,6 @@ void retro_run(void)
 
    for (i = 0; i < 24; i++)
    {
-      int scanCode = keymap[i].scanCode;
-
       if (input_state_cb(keymap[i].port, RETRO_DEVICE_JOYPAD, 0, keymap[i].index)) {
          if (keyPressed[i] == 0) {
             keyPressed[i] = 1;
@@ -472,7 +468,7 @@ void retro_run(void)
 
          if (done == 0)
          {
-            fprintf(stderr, "map decode (Err:%d) %d (%d, %d) %d\n", retour, mp3Position, read, done, soundEnd);
+            log_cb(RETRO_LOG_ERROR, "mad decode (Err:%d) %d (%d, %d) %d\n", retour, mp3Position, read, done, soundEnd);
             read++; // Skip in case of error.
             error++;
             if (error > 65536)
@@ -481,6 +477,14 @@ void retro_run(void)
 
          mp3Position += read;
       }
+
+      if (RETRO_IS_BIG_ENDIAN)
+	{
+	  int i;
+	  for (i = 0; i < NEEDFRAME * 2; i++) {
+	    soundBuffer[i] = SWAP16(soundBuffer[i]);
+	  }
+	}
 
       audio_batch_cb(soundBuffer, NEEDFRAME);
 
@@ -495,7 +499,6 @@ void retro_run(void)
 
 bool retro_load_game(const struct retro_game_info *info)
 {
-    struct retro_frame_time_callback frame_cb;
     struct retro_input_descriptor desc[] = {
         {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,   "Left"  },
         {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,     "Up"    },
@@ -515,8 +518,7 @@ bool retro_load_game(const struct retro_game_info *info)
     // Init pixel format
     if (!environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt))
     {
-        if (log_cb)
-            log_cb(RETRO_LOG_INFO, "XRGG565 is not supported.\n");
+        log_cb(RETRO_LOG_INFO, "XRGG565 is not supported.\n");
         return 0;
     }
 
