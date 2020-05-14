@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <errno.h>
+#include <retro_endianness.h>
 
 #include "plateform.h"
 
@@ -481,6 +482,14 @@ void retro_run(void)
 
          mp3Position += read;
       }
+
+      if (RETRO_IS_BIG_ENDIAN)
+	{
+	  int i;
+	  for (i = 0; i < NEEDFRAME * 2; i++) {
+	    soundBuffer[i] = SWAP16(soundBuffer[i]);
+	  }
+	}
 
       audio_batch_cb(soundBuffer, NEEDFRAME);
 
