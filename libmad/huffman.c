@@ -35,8 +35,8 @@
  */
 
 
-#  define PTR(offs, bits)	{ { 0, bits, offs } }
-#  define V(v, w, x, y, hlen)	{ { 1, hlen, (v << 0) | (w << 1) |  (x << 2) | (y << 3) } }
+#define PTR(offs, bits)	{ .ptr = { 0, bits, offs } }
+#define V(v, w, x, y, hlen)	{ .value = { 1, hlen, v, w, x, y } }
 
 static
 union huffquad const hufftabA[] = {
@@ -101,13 +101,8 @@ union huffquad const hufftabB[] = {
 # undef V
 # undef PTR
 
-# if defined(__GNUC__)
-#  define PTR(offs, bits)	{  { 0, bits, offs } }
-#  define V(x, y, hlen)		{  { 1, hlen, (x << 0) | (y << 4) } }
-# else
-#  define PTR(offs, bits)	{ { 0, bits, offs } }
-#  define V(x, y, hlen)		{ { 1, hlen, (x << 0) | (y << 4) } }
-# endif
+#define PTR(offs, bits)	{  .ptr = { 0, bits, offs } }
+#define V(x, y, hlen)		{  .value = { 1, hlen, x, y } }
 
 static
 union huffpair const hufftab0[] = {
