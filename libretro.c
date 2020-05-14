@@ -153,7 +153,6 @@ static void fallback_log(enum retro_log_level level, const char *fmt, ...)
 void retro_init(void)
 {
     char *savedir = NULL;
-    int i;
 
     environ_cb(RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY, &savedir);
 
@@ -340,8 +339,6 @@ void retro_run(void)
 
    for (i = 0; i < 24; i++)
    {
-      int scanCode = keymap[i].scanCode;
-
       if (input_state_cb(keymap[i].port, RETRO_DEVICE_JOYPAD, 0, keymap[i].index)) {
          if (keyPressed[i] == 0) {
             keyPressed[i] = 1;
@@ -502,7 +499,6 @@ void retro_run(void)
 
 bool retro_load_game(const struct retro_game_info *info)
 {
-    struct retro_frame_time_callback frame_cb;
     struct retro_input_descriptor desc[] = {
         {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,   "Left"  },
         {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,     "Up"    },
