@@ -53,14 +53,6 @@ endif
 
 fpic=
 
-ifeq ($(ARCHFLAGS),)
-ifeq ($(archs),ppc)
-   ARCHFLAGS = -arch ppc -arch ppc64
-else
-   ARCHFLAGS = -arch i386 -arch x86_64
-endif
-endif
-
 ifeq ($(STATIC_LINKING),1)
 	EXT=a
 
@@ -544,13 +536,6 @@ CFLAGS += $(INCFLAGS) $(INCFLAGS_PLATFORM)
 LFLAGS := 
 
 LDFLAGS += $(LIBS)
-
-ifeq ($(platform), osx)
-ifndef ($(NOUNIVERSAL))
-   CFLAGS += $(ARCHFLAGS)
-   LFLAGS += $(ARCHFLAGS)
-endif
-endif
 
 with_fpic=
 ifneq ($(fpic),)
