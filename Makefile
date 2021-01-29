@@ -23,6 +23,9 @@ ifeq ($(shell uname -a),)
 else ifneq ($(findstring Darwin,$(shell uname -a)),)
 	system_platform = osx
 	arch = intel
+ifeq ($(shell uname -p),arm)
+	arch = arm
+endif
 ifeq ($(shell uname -p),powerpc)
 	arch = ppc
 endif
@@ -86,6 +89,14 @@ else ifeq ($(platform), osx)
    TARGET := $(TARGET_NAME)_libretro.$(EXT)
    fpic := -fPIC
    SHARED := -dynamiclib
+
+   ifeq ($(CROSS_COMPILE),1)
+		TARGET_RULE   = -target $(LIBRETRO_APPLE_PLATFORM) -isysroot $(LIBRETRO_APPLE_ISYSROOT)
+		CFLAGS   += $(TARGET_RULE)
+		CPPFLAGS += $(TARGET_RULE)
+		CXXFLAGS += $(TARGET_RULE)
+		LDFLAGS  += $(TARGET_RULE)
+   endif
 # iOS
 else ifneq (,$(findstring ios,$(platform)))
 	EXT?=dylib
