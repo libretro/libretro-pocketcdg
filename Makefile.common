@@ -12,7 +12,7 @@ CFLAGS += -DSIZEOF_INT=4
 
 SOURCES_C := \
 	$(CORE_DIR)/libretro.c \
-	$(CORE_DIR)/plateform.c \
+	$(CORE_DIR)/platform.c \
 	$(wildcard $(CORE_DIR)/libmad/*.c) \
 	$(wildcard $(CORE_DIR)/zip/*.c) \
 	$(wildcard $(CORE_DIR)/zip/zlib/*.c)

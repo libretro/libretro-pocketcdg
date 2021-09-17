@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <signal.h>
 
-#include "plateform.h"
+#include "platform.h"
 
 #define COL_MASK       15
 #define SC_MASK        0x3F

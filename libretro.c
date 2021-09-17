@@ -8,7 +8,7 @@
 #include <errno.h>
 #include <retro_endianness.h>
 
-#include "plateform.h"
+#include "platform.h"
 
 #include "libmad/libmad.h"
 
