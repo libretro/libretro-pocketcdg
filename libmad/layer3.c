@@ -28,15 +28,7 @@
 # include <stdlib.h>
 # include <string.h>
 
-# ifdef HAVE_ASSERT_H
-#  include <assert.h>
-# endif
-
-# ifdef HAVE_LIMITS_H
-#  include <limits.h>
-# else
-#  define CHAR_BIT  8
-# endif
+#include <limits.h>
 
 # include "fixed.h"
 # include "bit.h"
@@ -1250,15 +1242,6 @@ enum mad_error III_huffdecode(struct mad_bitptr *ptr, mad_fixed_t xr[576],
     }
   }
 
-  assert(-bits_left <= MAD_BUFFER_GUARD * CHAR_BIT);
-
-# if 0 && defined(DEBUG)
-  if (bits_left < 0)
-    fprintf(stderr, "read %d bits too many\n", -bits_left);
-  else if (cachesz + bits_left > 0)
-    fprintf(stderr, "%d stuffing bits\n", cachesz + bits_left);
-# endif
-
   /* rzero */
   while (xrptr < &xr[576]) {
     xrptr[0] = 0;
@@ -2435,9 +2418,6 @@ int mad_layer_III(struct mad_stream *stream, struct mad_frame *frame)
 		   *stream->main_data + stream->md_len - si.main_data_begin);
 
       if (md_len > si.main_data_begin) {
-	assert(stream->md_len + md_len -
-	       si.main_data_begin <= MAD_BUFFER_MDLEN);
-
 	memcpy(*stream->main_data + stream->md_len,
 	       mad_bit_nextbyte(&stream->ptr),
 	       frame_used = md_len - si.main_data_begin);
