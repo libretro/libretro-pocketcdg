@@ -20,7 +20,8 @@ typedef uint32_t u32;
 typedef int32_t s32;
 
 
-void CDGLoad(char *filename);
+void CDGLoad(const char *filename);
+void CDGUnload(void);
 
 void getFrame(u16 *frame, int pos_mp3, int fps);		// pos_mp3 in ms
 
