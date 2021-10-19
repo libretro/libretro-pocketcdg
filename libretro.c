@@ -18,16 +18,16 @@
 
 #define FPS 50
 
-static void *mp3Mad;
+static void *mp3Mad     = NULL;
 
-static char *mp3;
-static u32 mp3Length;
-static u32 mp3Position;
+static char *mp3        = NULL;
+static u32 mp3Length    = 0;
+static u32 mp3Position  = 0;
 
-s16 *soundBuffer;
-u16 soundEnd;
+static s16 *soundBuffer = NULL;
+static u16 soundEnd     = 0;
 
-static u8 kpause = 0;
+static u8 kpause        = 0;
 
 u16 pixels[320 * 240 * 2];
 u16 pixels2[320 * 240 * 2];
@@ -78,7 +78,7 @@ static u16 AlphaBlend(u16 pixel, u16 backpixel, u16 opacity)
          );
 }
 
-static bool loadGame(const char *mp3_filename, const char *cdg_filename)
+static bool retro_load_game_internal(const char *mp3_filename, const char *cdg_filename)
 {
    FILE *fic = NULL;
    CDGLoad(cdg_filename);
@@ -88,7 +88,6 @@ static bool loadGame(const char *mp3_filename, const char *cdg_filename)
    fseek(fic, 0, SEEK_END);
    mp3Length = ftell(fic);
    fseek(fic, 0, SEEK_SET);
-
    if (!(mp3 = (char *)malloc(mp3Length)))
       return false;
    fread(mp3, 1, mp3Length, fic);
@@ -115,9 +114,7 @@ static bool loadGame(const char *mp3_filename, const char *cdg_filename)
       }
    }
 
-   mp3Mad = mad_init();
-
-
+   mp3Mad   = mad_init();
    soundEnd = 0;
 
    return true;
@@ -135,20 +132,20 @@ static void update_variables(void) { }
 
 void retro_init(void)
 {
-   char *savedir = NULL;
-
-   environ_cb(RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY, &savedir);
-
    update_variables();
 
    soundBuffer = (s16 *)malloc(32768);
 
    width       = 320;
    height      = 240;
-
 }
 
-void retro_deinit(void) { }
+void retro_deinit(void)
+{
+   if (soundBuffer)
+      free(soundBuffer);
+   soundBuffer = NULL;
+}
 
 unsigned retro_api_version(void)
 {
@@ -167,11 +164,10 @@ void retro_get_system_info(struct retro_system_info *info)
    info->library_name     = "pocketcdg";
    info->need_fullpath    = false;
    info->valid_extensions = "cdg";
-
 #ifdef GIT_VERSION
-   info->library_version = "git" GIT_VERSION;
+   info->library_version  = "git" GIT_VERSION;
 #else
-   info->library_version = "svn";
+   info->library_version  = "svn";
 #endif
 }
 
@@ -470,12 +466,17 @@ bool retro_load_game(const struct retro_game_info *info)
       strcat(openMP3Filename, "mp3");
    }
 
-   return loadGame(openMP3Filename, openCDGFilename);
+   return retro_load_game_internal(openMP3Filename, openCDGFilename);
 }
 
 void retro_unload_game(void)
 {
     CDGUnload();
+    if (mp3)
+       free(mp3);
+    if (mp3Mad)
+       mad_uninit(mp3Mad);
+    mp3 = NULL;
 }
 
 unsigned retro_get_region(void)
