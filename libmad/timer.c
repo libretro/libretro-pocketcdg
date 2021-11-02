@@ -25,7 +25,7 @@
 
 # include "global.h"
 
-# include <stdio.h>
+#include <stdio.h>
 
 # include "timer.h"
 
@@ -37,9 +37,7 @@ mad_timer_t const mad_timer_zero = { 0, 0 };
  */
 int mad_timer_compare(mad_timer_t timer1, mad_timer_t timer2)
 {
-  signed long diff;
-
-  diff = timer1.seconds - timer2.seconds;
+  signed long diff = timer1.seconds - timer2.seconds;
   if (diff < 0)
     return -1;
   else if (diff > 0)

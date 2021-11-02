@@ -29,14 +29,6 @@
 #define FPM_64BIT 1
 #define FPM_DEFAULT 1
 
-# if defined(DEBUG) && defined(NDEBUG)
-#  error "cannot define both DEBUG and NDEBUG"
-# endif
-
-# if defined(DEBUG)
-#  include <stdio.h>
-# endif
-
 /* conditional features */
 
 # if defined(OPT_SPEED) && defined(OPT_ACCURACY)
