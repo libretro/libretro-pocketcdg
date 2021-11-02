@@ -29,8 +29,6 @@
 # include "frame.h"
 # include "synth.h"
 
-#include <stdio.h> 
-
 /*
  * NAME:	synth->init()
  * DESCRIPTION:	initialize synth struct
