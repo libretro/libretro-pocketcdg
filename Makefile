@@ -173,6 +173,7 @@ else ifeq ($(platform), psp1)
    CC = psp-gcc$(EXE_EXT)
    AR = psp-ar$(EXE_EXT)
    PLATFORM_DEFINES := -DPSP -G0
+   CFLAGS += -DGNU_SOURCE=1 -G0 -I$(shell psp-config --pspsdk-path)/include
    STATIC_LINKING = 1
 
 # Vita
