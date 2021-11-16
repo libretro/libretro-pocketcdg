@@ -898,10 +898,6 @@ mad_fixed_t III_requantize(unsigned int value, signed int exp)
   else {
     if (exp >= 5) {
       /* overflow */
-# if defined(DEBUG)
-      fprintf(stderr, "requantize overflow (%f * 2^%d)\n",
-	      mad_f_todouble(requantized), exp);
-# endif
       requantized = MAD_F_MAX;
     }
     else
@@ -1230,10 +1226,6 @@ enum mad_error III_huffdecode(struct mad_bitptr *ptr, mad_fixed_t xr[576],
     }
 
     if (cachesz + bits_left < 0) {
-# if 0 && defined(DEBUG)
-      fprintf(stderr, "huffman count1 overrun (%d bits)\n",
-	      -(cachesz + bits_left));
-# endif
 
       /* technically the bitstream is misformatted, but apparently
 	 some encoders are just a bit sloppy with stuffing bits */
@@ -2442,14 +2434,6 @@ int mad_layer_III(struct mad_stream *stream, struct mad_frame *frame)
     stream->anc_ptr    = ptr;
     stream->anc_bitlen = md_len * CHAR_BIT - data_bitlen;
   }
-
-# if 0 && defined(DEBUG)
-  fprintf(stderr,
-	  "main_data_begin:%u, md_len:%u, frame_free:%u, "
-	  "data_bitlen:%u, anc_bitlen: %u\n",
-	  si.main_data_begin, md_len, frame_free,
-	  data_bitlen, stream->anc_bitlen);
-# endif
 
   /* preload main_data buffer with up to 511 bytes for next frame(s) */
 

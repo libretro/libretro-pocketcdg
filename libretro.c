@@ -7,6 +7,8 @@
 #include <stdarg.h>
 #include <errno.h>
 #include <retro_endianness.h>
+#include <streams/file_stream.h>
+#include <libretro.h>
 
 #include "platform.h"
 
@@ -186,6 +188,7 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
 
 void retro_set_environment(retro_environment_t cb)
 {
+   struct retro_vfs_interface_info vfs_iface_info;
    struct retro_log_callback logging;
    static const struct retro_controller_description port[] = {
       {"RetroPad",      RETRO_DEVICE_JOYPAD     },
@@ -204,6 +207,11 @@ void retro_set_environment(retro_environment_t cb)
       log_cb = logging.log;
 
    cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void *)ports);
+
+   vfs_iface_info.required_interface_version = 1;
+   vfs_iface_info.iface                      = NULL;
+   if (cb(RETRO_ENVIRONMENT_GET_VFS_INTERFACE, &vfs_iface_info))
+	   filestream_vfs_init(&vfs_iface_info);
 }
 
 void retro_set_audio_sample(retro_audio_sample_t cb)

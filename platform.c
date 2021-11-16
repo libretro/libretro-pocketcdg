@@ -1,5 +1,5 @@
-#include <stdio.h>
 #include <signal.h>
+#include <streams/file_stream.h>
 
 #include "platform.h"
 
@@ -19,37 +19,27 @@ typedef struct {
     unsigned char parityP[4];
 } SUBCODE;
 
+/* Forward declarations */
+RFILE* rfopen(const char *path, const char *mode);
+int rfclose(RFILE* stream);
+int64_t rfread(void* buffer,
+   size_t elem_size, size_t elem_count, RFILE* stream);
 
+/* Variables */
 int save, load;
-
 int xPitch0, yPitch0;
-
 u8 *CDG_screenBuffer;
 u16 *CDG_pal_screenBuffer;
-
-
-static FILE *fp;
-
+static RFILE *fp;
 u16 palette[16];
-
-
 int pos_cdg;
-
-
 int firsttime;
-
-
 int play;
 int stop;
-
 int action;
-
 int pauseCDG;
-
 int pause_pos;
-
 int cdg_refresh;
-
 
 #define RGB15(R, G, B) ((((R) & 0xF8) << 8) | (((G) & 0xFC) << 3) | (((B) & 0xF8) >> 3))
 
@@ -77,7 +67,7 @@ void GpSetPaletteEntry(u8 i, u8 r, u8 g, u8 b)
 void CDGUnload(void)
 {
    if (fp)
-     fclose(fp);
+     rfclose(fp);
    fp = NULL;
 }
 
@@ -101,7 +91,7 @@ void CDGLoad(const char *filename)
    load = 0;
    action = 0;
 
-   fp = fopen(filename, "rb");
+   fp = rfopen(filename, "rb");
 }
 
 void getFrame(u16 *frame, int pos_mp3, int fps)
@@ -157,7 +147,7 @@ void getFrame(u16 *frame, int pos_mp3, int fps)
       {
          pos_cdg++;
 
-         m_size = fread(&subCode, 1, sizeof(SUBCODE), fp);
+         m_size = rfread(&subCode, 1, sizeof(SUBCODE), fp);
          if (m_size != 0)
          {
             if ((subCode.command & SC_MASK) == SC_CDG_COMMAND)
