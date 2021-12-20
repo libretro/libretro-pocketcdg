@@ -394,8 +394,9 @@ void retro_run(void)
          if (mp3Position + length > mp3Length)
          {
             length = mp3Length - mp3Position;
-            if (length <= 0)
+            if (length <= 128) // 2048 / 16
             {
+               log_cb(RETRO_LOG_INFO,"Song ended, exiting libretro\n");
                environ_cb(RETRO_ENVIRONMENT_SHUTDOWN, NULL);
                break;
             }
