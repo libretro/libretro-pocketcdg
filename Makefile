@@ -154,6 +154,8 @@ else ifeq ($(platform), qnx)
 else ifeq ($(platform), emscripten)
 	EXT?=bc
    TARGET := $(TARGET_NAME)_libretro_$(platform).$(EXT)
+	fpic := -fPIC
+	SHARED := -shared -r
 	STATIC_LINKING = 1
 
 # Lightweight PS3 Homebrew SDK
@@ -272,6 +274,15 @@ else ifeq ($(platform), wiiu)
 	AR = $(DEVKITPPC)/bin/powerpc-eabi-ar$(EXE_EXT)
 	PLATFORM_DEFINES += -DGEKKO -DWIIU -DHW_RVL -mrvl -mcpu=750 -meabi -mhard-float
 	STATIC_LINKING = 1
+# DOS
+else ifeq ($(platform), dos)
+	TARGET := $(TARGET_NAME)_libretro_$(platform).a
+	CC = i586-pc-msdosdjgpp-gcc
+	CC_AS = i586-pc-msdosdjgpp-gcc
+	AR = i586-pc-msdosdjgpp-ar
+	CXX = i586-pc-msdosdjgpp-g++
+	PLATFORM_DEFINES += -march=i386
+	STATIC_LINKING=1
 
 # Windows MSVC 2003 Xbox 1
 else ifeq ($(platform), xbox1_msvc2003)
@@ -578,8 +589,10 @@ include $(THEOS_MAKE_PATH)/library.mk
 else
 all: $(TARGET)
 
-$(TARGET): $(OBJECTS) 
-ifeq ($(STATIC_LINKING), 1)
+$(TARGET): $(OBJECTS)
+ifeq ($(platform), emscripten)
+	$(LD) $(fpic) $(SHARED) $(LDFLAGS) $(LINKOUT)$@ $(OBJECTS) $(LIBS)
+else ifeq ($(STATIC_LINKING), 1)
 	$(AR) rcs $@ $(OBJECTS)
 else
 	$(LD) $(fpic) $(SHARED) $(LFLAGS) $(LINKOUT)$@ $(OBJECTS) $(LDFLAGS)
