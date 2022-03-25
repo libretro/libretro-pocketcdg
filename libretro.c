@@ -16,7 +16,11 @@
 
 #include "font8x16.h"
 
-#define GP_RGB24(r, g, b) (((((r >> 3)) & 0x1f) << 11) | ((((g >> 3)) & 0x1f) << 6) | ((((b >> 3)) & 0x1f) << 1))
+#ifdef ABGR1555
+#define GP_RGB24(r, g, b) (((((b >> 3)) & 0x1f) << 10) | ((((g >> 3)) & 0x1f) << 5) | (((r >> 3)) & 0x1f))
+#else
+#define GP_RGB24(r, g, b) (((((r >> 3)) & 0x1f) << 11) | ((((g >> 2)) & 0x3f) << 6) | (((b >> 3)) & 0x1f))
+#endif
 
 #define FPS 50
 
@@ -337,7 +341,7 @@ void retro_run(void)
 
       memcpy(pixels2, pixels, width * height * 2);
 
-      col = GP_RGB24(100, 100, 100);
+      col = GP_RGB24(100, 50, 200);
 
       sprintf(str, "Pocket CDG by Kyuran (%s)", version);
 
