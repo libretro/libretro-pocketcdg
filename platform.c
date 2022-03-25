@@ -41,7 +41,11 @@ int pauseCDG;
 int pause_pos;
 int cdg_refresh;
 
+#ifdef ABGR1555
+#define RGB15(R, G, B) ((((B) & 0xF8) << 7) | (((G) & 0xF8) << 2) | (((R) & 0xF8) >> 3))
+#else
 #define RGB15(R, G, B) ((((R) & 0xF8) << 8) | (((G) & 0xFC) << 3) | (((B) & 0xF8) >> 3))
+#endif
 
 // ---
 
