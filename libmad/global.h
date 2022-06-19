@@ -29,19 +29,4 @@
 #define FPM_64BIT 1
 #define FPM_DEFAULT 1
 
-/* conditional features */
-
-# if defined(OPT_SPEED) && defined(OPT_ACCURACY)
-#  error "cannot optimize for both speed and accuracy"
-# endif
-
-# if defined(OPT_SPEED) && !defined(OPT_SSO)
-#  define OPT_SSO
-# endif
-
-# if defined(HAVE_UNISTD_H) && defined(HAVE_WAITPID) &&  \
-    defined(HAVE_FCNTL) && defined(HAVE_PIPE) && defined(HAVE_FORK)
-#  define USE_ASYNC
-# endif
-
 # endif

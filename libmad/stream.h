@@ -83,11 +83,6 @@ struct mad_stream {
 enum {
   MAD_OPTION_IGNORECRC      = 0x0001,	/* ignore CRC errors */
   MAD_OPTION_HALFSAMPLERATE = 0x0002	/* generate PCM at 1/2 sample rate */
-# if 0  /* not yet implemented */
-  MAD_OPTION_LEFTCHANNEL    = 0x0010,	/* decode left channel only */
-  MAD_OPTION_RIGHTCHANNEL   = 0x0020,	/* decode right channel only */
-  MAD_OPTION_SINGLECHANNEL  = 0x0030	/* combine channels */
-# endif
 };
 
 void mad_stream_init(struct mad_stream *);
@@ -98,10 +93,7 @@ void mad_stream_finish(struct mad_stream *);
 
 void mad_stream_buffer(struct mad_stream *,
 		       unsigned char const *, unsigned long);
-void mad_stream_skip(struct mad_stream *, unsigned long);
 
 int mad_stream_sync(struct mad_stream *);
-
-char const *mad_stream_errorstr(struct mad_stream const *);
 
 # endif

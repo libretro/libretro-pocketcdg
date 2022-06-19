@@ -46,11 +46,10 @@ typedef struct
 extern "C" {
 #endif
 
-LIBMAD_EXPORT void* mad_init();
+LIBMAD_EXPORT void* mad_init(void);
 LIBMAD_EXPORT int mad_decode(void* hMad, char *inmemory,int inmemsize, char *outmemory,
-							 int outmemsize, int* read, int *done, int resolution, int halfsamplerate);
+		int outmemsize, int* read, int *done, int resolution, int halfsamplerate);
 LIBMAD_EXPORT void mad_uninit(void* hMad);
-LIBMAD_EXPORT void mad_seteq(void* hMad, equalizer_value* eq);
 
 #ifdef __cplusplus
 }

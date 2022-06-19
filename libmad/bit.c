@@ -170,22 +170,6 @@ unsigned long mad_bit_read(struct mad_bitptr *bitptr, unsigned int len)
   return value;
 }
 
-# if 0
-/*
- * NAME:	bit->write()
- * DESCRIPTION:	write an arbitrary number of bits
- */
-void mad_bit_write(struct mad_bitptr *bitptr, unsigned int len,
-		   unsigned long value)
-{
-  unsigned char *ptr;
-
-  ptr = (unsigned char *) bitptr->byte;
-
-  /* ... */
-}
-# endif
-
 /*
  * NAME:	bit->crc()
  * DESCRIPTION:	compute CRC-check word
