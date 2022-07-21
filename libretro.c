@@ -333,6 +333,7 @@ void retro_run(void)
       int i, j;
       char str[512];
       u16 col;
+      size_t str_len;
 #ifdef GIT_VERSION
       char *version = "git" GIT_VERSION;
 #else
@@ -344,8 +345,9 @@ void retro_run(void)
       col = GP_RGB24(100, 50, 200);
 
       sprintf(str, "Pocket CDG by Kyuran (%s)", version);
+      str_len = strlen(str);
 
-      for (i = 0; i < strlen(str); i++)
+      for (i = 0; i < str_len; i++)
       {
 
          for (j = 0; j < 16; j++)
@@ -444,6 +446,7 @@ void retro_run(void)
 
 bool retro_load_game(const struct retro_game_info *info)
 {
+   size_t openMP3Filename_len;
    char openCDGFilename[1024];
    char openMP3Filename[1024];
    struct retro_input_descriptor desc[] = {
@@ -472,10 +475,11 @@ bool retro_load_game(const struct retro_game_info *info)
    // Load .cdg
    strcpy(openCDGFilename, info->path);
    strcpy(openMP3Filename, openCDGFilename);
+   openMP3Filename_len = strlen(openMP3Filename);
 
-   if (strlen(openMP3Filename) > 4)
+   if (openMP3Filename_len > 4)
    {
-      openMP3Filename[strlen(openMP3Filename) - 3] = 0;
+      openMP3Filename[openMP3Filename_len - 3] = 0;
       strcat(openMP3Filename, "mp3");
    }
 
