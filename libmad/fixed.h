@@ -42,7 +42,11 @@ typedef unsigned long mad_fixed64lo_t;
 #  define mad_fixed64_t  signed long long
 # endif
 
+# if defined(FPM_FLOAT)
+typedef double mad_sample_t;
+# else
 typedef mad_fixed_t mad_sample_t;
+# endif
 
 /*
  * Fixed-point format: 0xABBBBBBB
@@ -104,14 +108,32 @@ typedef mad_fixed_t mad_sample_t;
 # define mad_f_add(x, y)	((x) + (y))
 # define mad_f_sub(x, y)	((x) - (y))
 
-# if defined(FPM_64BIT)
+# if defined(FPM_FLOAT)
+#  error "FPM_FLOAT not yet supported"
+
+#  undef MAD_F
+#  define MAD_F(x)		mad_f_todouble(x)
+
+#  define mad_f_mul(x, y)	((x) * (y))
+#  define mad_f_scale64
+
+#  undef ASO_ZEROCHECK
+
+# elif defined(FPM_64BIT)
 
 /*
  * This version should be the most accurate if 64-bit types are supported by
  * the compiler, although it may not be the most efficient.
  */
+#  if defined(OPT_ACCURACY)
+#   define mad_f_mul(x, y)  \
+    ((mad_fixed_t)  \
+     ((((mad_fixed64_t) (x) * (y)) +  \
+       (1L << (MAD_F_SCALEBITS - 1))) >> MAD_F_SCALEBITS))
+#  else
 #   define mad_f_mul(x, y)  \
     ((mad_fixed_t) (((mad_fixed64_t) (x) * (y)) >> MAD_F_SCALEBITS))
+#  endif
 
 #  define MAD_F_SCALEBITS  MAD_F_FRACBITS
 
@@ -152,6 +174,43 @@ mad_fixed_t mad_f_mul_inline(mad_fixed_t x, mad_fixed_t y)
 	 : "%a" (x), "rm" (y)  \
 	 : "cc")
 
+#   if defined(OPT_ACCURACY)
+/*
+ * This gives best accuracy but is not very fast.
+ */
+#    define MAD_F_MLA(hi, lo, x, y)  \
+    ({ mad_fixed64hi_t __hi;  \
+       mad_fixed64lo_t __lo;  \
+       MAD_F_MLX(__hi, __lo, (x), (y));  \
+       asm ("addl %2,%0\n\t"  \
+	    "adcl %3,%1"  \
+	    : "=rm" (lo), "=rm" (hi)  \
+	    : "r" (__lo), "r" (__hi), "0" (lo), "1" (hi)  \
+	    : "cc");  \
+    })
+#   endif  /* OPT_ACCURACY */
+
+#   if defined(OPT_ACCURACY)
+/*
+ * Surprisingly, this is faster than SHRD followed by ADC.
+ */
+#    define mad_f_scale64(hi, lo)  \
+    ({ mad_fixed64hi_t __hi_;  \
+       mad_fixed64lo_t __lo_;  \
+       mad_fixed_t __result;  \
+       asm ("addl %4,%2\n\t"  \
+	    "adcl %5,%3"  \
+	    : "=rm" (__lo_), "=rm" (__hi_)  \
+	    : "0" (lo), "1" (hi),  \
+	      "ir" (1L << (MAD_F_SCALEBITS - 1)), "ir" (0)  \
+	    : "cc");  \
+       asm ("shrdl %3,%2,%1"  \
+	    : "=rm" (__result)  \
+	    : "0" (__lo_), "r" (__hi_), "I" (MAD_F_SCALEBITS)  \
+	    : "cc");  \
+       __result;  \
+    })
+#    else
 #    define mad_f_scale64(hi, lo)  \
     ({ mad_fixed_t __result;  \
        asm ("shrdl %3,%2,%1"  \
@@ -160,6 +219,7 @@ mad_fixed_t mad_f_mul_inline(mad_fixed_t x, mad_fixed_t y)
 	    : "cc");  \
        __result;  \
     })
+#   endif  /* OPT_ACCURACY */
 
 #   define MAD_F_SCALEBITS  MAD_F_FRACBITS
 #  endif
@@ -256,9 +316,11 @@ mad_fixed_t mad_f_mul_inline(mad_fixed_t x, mad_fixed_t y)
 #  define MAD_F_MLZ(hi, lo)  ((mad_fixed_t) (lo))
 # endif
 
+# if defined(OPT_SPEED)
 #  define mad_f_scale64(hi, lo)  \
     ((mad_fixed_t) ((hi) << (32 - MAD_F_SCALEBITS)))
 #  define MAD_F_SCALEBITS  MAD_F_FRACBITS
+# endif
 
 /* --- SPARC --------------------------------------------------------------- */
 
@@ -293,6 +355,44 @@ mad_fixed_t mad_f_mul_inline(mad_fixed_t x, mad_fixed_t y)
     }  \
     while (0)
 
+#  if defined(OPT_ACCURACY)
+/*
+ * This gives best accuracy but is not very fast.
+ */
+#   define MAD_F_MLA(hi, lo, x, y)  \
+    ({ mad_fixed64hi_t __hi;  \
+       mad_fixed64lo_t __lo;  \
+       MAD_F_MLX(__hi, __lo, (x), (y));  \
+       asm ("addc %0,%2,%3\n\t"  \
+	    "adde %1,%4,%5"  \
+	    : "=r" (lo), "=r" (hi)  \
+	    : "%r" (lo), "r" (__lo),  \
+	      "%r" (hi), "r" (__hi)  \
+	    : "xer");  \
+    })
+#  endif
+
+#  if defined(OPT_ACCURACY)
+/*
+ * This is slower than the truncating version below it.
+ */
+#   define mad_f_scale64(hi, lo)  \
+    ({ mad_fixed_t __result, __round;  \
+       asm ("rotrwi %0,%1,%2"  \
+	    : "=r" (__result)  \
+	    : "r" (lo), "i" (MAD_F_SCALEBITS));  \
+       asm ("extrwi %0,%1,1,0"  \
+	    : "=r" (__round)  \
+	    : "r" (__result));  \
+       asm ("insrwi %0,%1,%2,0"  \
+	    : "+r" (__result)  \
+	    : "r" (hi), "i" (MAD_F_SCALEBITS));  \
+       asm ("add %0,%1,%2"  \
+	    : "=r" (__result)  \
+	    : "%r" (__result), "r" (__round));  \
+       __result;  \
+    })
+#  else
 #   define mad_f_scale64(hi, lo)  \
     ({ mad_fixed_t __result;  \
        asm ("rotrwi %0,%1,%2"  \
@@ -303,6 +403,7 @@ mad_fixed_t mad_f_mul_inline(mad_fixed_t x, mad_fixed_t y)
 	    : "r" (hi), "i" (MAD_F_SCALEBITS));  \
        __result;  \
     })
+#  endif
 
 #  define MAD_F_SCALEBITS  MAD_F_FRACBITS
 
@@ -319,7 +420,12 @@ mad_fixed_t mad_f_mul_inline(mad_fixed_t x, mad_fixed_t y)
  *
  * Pre-rounding is required to stay within the limits of compliance.
  */
+#  if defined(OPT_SPEED)
 #   define mad_f_mul(x, y)	(((x) >> 12) * ((y) >> 16))
+#  else
+#   define mad_f_mul(x, y)	((((x) + (1L << 11)) >> 12) *  \
+				 (((y) + (1L << 15)) >> 16))
+#  endif
 
 /* ------------------------------------------------------------------------- */
 
@@ -358,15 +464,23 @@ mad_fixed_t mad_f_mul_inline(mad_fixed_t x, mad_fixed_t y)
 # endif
 
 # if !defined(mad_f_scale64)
+#  if defined(OPT_ACCURACY)
+#   define mad_f_scale64(hi, lo)  \
+    ((((mad_fixed_t)  \
+       (((hi) << (32 - (MAD_F_SCALEBITS - 1))) |  \
+	((lo) >> (MAD_F_SCALEBITS - 1)))) + 1) >> 1)
+#  else
 #   define mad_f_scale64(hi, lo)  \
     ((mad_fixed_t)  \
      (((hi) << (32 - MAD_F_SCALEBITS)) |  \
       ((lo) >> MAD_F_SCALEBITS)))
+#  endif
 #  define MAD_F_SCALEBITS  MAD_F_FRACBITS
 # endif
 
 /* C routines */
 
 mad_fixed_t mad_f_abs(mad_fixed_t);
+mad_fixed_t mad_f_div(mad_fixed_t, mad_fixed_t);
 
 # endif

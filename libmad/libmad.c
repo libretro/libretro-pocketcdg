@@ -30,14 +30,14 @@ typedef struct
 	mad_fixed_t eqfactor[32];
 }dec_struct;
 
-static void equalizer_init(mad_fixed_t eqfactor[32])
+void equalizer_init(mad_fixed_t eqfactor[32])
 {
 	int i;
 	for (i = 0; i < 32; i++)
 		eqfactor[i] = 0x10000000;
 }
 
-void* mad_init(void)
+void* mad_init()
 {
 	dec_struct* dec = malloc(sizeof(dec_struct));
 	if (!dec)
@@ -306,4 +306,37 @@ void mad_uninit(void* hMad)
 	mad_stream_finish(&dec->stream);
 
 	free(dec);
+}
+
+double eq_decibels(int value)
+{
+	/* 0-63, 0 == +20 dB, 31 == 0 dB, 63 == -20 dB */
+	return (value == 31) ? 0.0 : 20.0 - (20.0 / 31.5) * value;
+}
+
+mad_fixed_t eq_factor(double db)
+{
+	if (db > 18)
+		db = 18;
+
+	return mad_f_tofixed(pow(10, db / 20));
+}
+
+void mad_seteq(void* hMad, equalizer_value* eq)
+{
+	double base;
+	static unsigned char const map[32] = {
+	0, 1, 2, 3, 4, 5, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8,
+	8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9
+	};
+	int i;
+	dec_struct* dec = (dec_struct*)hMad;
+
+	/* 60, 170, 310, 600, 1k, 3k, 6k, 12k, 14k, 16k */
+
+	base = eq_decibels(eq->preamp);
+
+	for (i = 0; i < 32; ++i)
+		dec->eqfactor[i] = eq_factor(base + eq_decibels(eq->data[map[i]]));
+	dec->equalizer = eq->enable;
 }
