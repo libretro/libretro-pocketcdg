@@ -107,6 +107,8 @@ void mad_header_init(struct mad_header *);
 
 # define mad_header_finish(header)  /* nothing */
 
+int mad_header_decode(struct mad_header *, struct mad_stream *);
+
 void mad_frame_init(struct mad_frame *);
 void mad_frame_finish(struct mad_frame *);
 
